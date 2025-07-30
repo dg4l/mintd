@@ -6,4 +6,4 @@ a minimal torrent daemon written in C++
 * 16 bit `cmd`
 * 32 bit `flags`
 
-To see an example **client** implementation, see [minti.py](google.com).
+To see an example **client** implementation, see [client.py](client.py).
