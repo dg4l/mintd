@@ -13,6 +13,11 @@
 #include <libtorrent/magnet_uri.hpp>
 #define DEBUG 0
 
+enum CMDS{
+    CMD_ADD,
+    CMD_QUERY_STATUS
+};
+
 typedef struct ServerContext{
     const char* socket_path;
     struct sockaddr_un server_addr;
@@ -82,10 +87,10 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     bool ret;
     uint16_t command = *(uint16_t*)(packet + 2);
     switch(command){
-        case 0:
+        case CMD_ADD:
             ret = cmd_add_torrent(ctx, &response, packet + 8);
             break;
-        case 1:
+        case CMD_QUERY_STATUS:
             ret = cmd_status(ctx, &response);
             break;
         default:
