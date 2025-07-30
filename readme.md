@@ -1,3 +1,9 @@
 # mintd
+a minimal torrent daemon written in C++
 
-a minimal torrent daemon
+## ipc header protocol 
+* 16 bit `magic`: `"MT"`
+* 16 bit `cmd`
+* 32 bit `flags`
+
+To see an example **client** implementation, see [minti.py](google.com).
