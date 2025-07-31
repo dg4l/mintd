@@ -85,7 +85,7 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     ResponseContext response;
     response.message = "default";
     bool ret;
-    uint16_t command = *(uint16_t*)(packet + 2);
+    uint16_t command = packet[3] | (packet[2] << 8);
     switch(command){
         case CMD_ADD:
             ret = cmd_add_torrent(ctx, &response, packet + 8);
@@ -130,8 +130,8 @@ int main(int argc, char** argv){
             handle_packet(&ctx, client, packet);
             close(client);
             ctx.session->pop_alerts(&alerts);
-            for (lt::alert const* alert : alerts) {
-                if (lt::alert_cast<lt::torrent_error_alert>(alert)) {
+            for (lt::alert const* alert : alerts){
+                if (lt::alert_cast<lt::torrent_error_alert>(alert)){
                     done = true;
                     continue;
                 }

@@ -17,7 +17,7 @@ def send_packet(packet) -> bytes:
         return data
 
 def create_status_packet() -> bytes:
-    return mintd_magic + Commands.QUERY_STATUS.to_bytes(2, byteorder='little') + bytes(4)
+    return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)
 
 def mintd_status(args):
     packet = create_status_packet();
