@@ -18,6 +18,7 @@ typedef struct ServerContext{
     lt::settings_pack settings;
     lt::session* session;
     int srv_fd;
+    bool done;
 }ServerContext;
 
 typedef struct ResponseContext{

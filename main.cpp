@@ -30,6 +30,26 @@ void init_mintd(ServerContext* ctx){
     bind(ctx->srv_fd, (struct sockaddr*)&ctx->server_addr, sizeof(ctx->server_addr));
 }
 
+void handle_client(ServerContext* ctx, int client){
+    char packet[10000];
+    int bytes = read(client, packet, sizeof(packet));
+    packet[bytes] = 0;
+    handle_packet(ctx, client, packet);
+    close(client);
+}
+
+// don't return a bool, just modify the done flag.
+void handle_alerts(ServerContext* ctx){
+    std::vector<lt::alert*> alerts;
+    ctx->session->pop_alerts(&alerts);
+    for (lt::alert const* alert : alerts){
+        if (lt::alert_cast<lt::torrent_error_alert>(alert)){
+            ctx->done = true;
+            continue;
+        }
+    }
+}
+
 int main(int argc, char** argv){
     ServerContext ctx;
     init_mintd(&ctx);
@@ -37,21 +57,15 @@ int main(int argc, char** argv){
     listen(ctx.srv_fd, 1);
     char packet[10000];
     bool done = false;
-    std::vector<lt::alert*> alerts;
     while (!done){
         int client = accept(ctx.srv_fd, NULL, NULL);
         if (client != -1){
-            int bytes = read(client, packet, sizeof(packet));
-            packet[bytes] = 0;
-            handle_packet(&ctx, client, packet);
+            handle_client(&ctx, client);
             close(client);
-            ctx.session->pop_alerts(&alerts);
-            for (lt::alert const* alert : alerts){
-                if (lt::alert_cast<lt::torrent_error_alert>(alert)){
-                    done = true;
-                    continue;
-                }
-            }
+        } 
+        handle_alerts(&ctx);
+        if (ctx.done){
+            continue;
         }
     }
 }
