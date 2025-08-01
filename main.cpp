@@ -78,6 +78,25 @@ bool cmd_pause_all(ServerContext* ctx, ResponseContext* response){
     return true;
 }
 
+std::string craft_torrent_status_string(lt::torrent_status& status){
+    std::string status_str;
+    float percent_done = status.progress * 100;
+    status_str += status.name;
+    status_str += " ";
+    status_str += std::to_string(percent_done);
+    status_str += "%";
+    if (status.flags & lt::torrent_flags::paused){
+        status_str += " PAUSED";
+    }
+    else{
+        status_str += " UNPAUSED";
+    }
+    if (status.is_seeding){
+        status_str += " SEEDING";
+    }
+    return status_str;
+}
+
 bool cmd_status(ServerContext* ctx, ResponseContext* response){
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     response->message = "";
@@ -88,22 +107,9 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
     // appending is a little messy but it's fine for now
     for (std::size_t i = 0; i < handle_cnt; ++i){
         lt::torrent_status status = handles[i].status();
-        float percent_done = status.progress * 100;
         response->message += std::to_string(i);
         response->message += ": ";
-        response->message += status.name;
-        response->message += " ";
-        response->message += std::to_string(percent_done);
-        response->message += "%";
-        if (status.flags & lt::torrent_flags::paused){
-            response->message += " PAUSED";
-        }
-        else{
-            response->message += " UNPAUSED";
-        }
-        if (status.is_seeding){
-            response->message += " SEEDING";
-        }
+        response->message += craft_torrent_status_string(status);
         if (i < handles.size() - 1){
             response->message += '\n';
         }
