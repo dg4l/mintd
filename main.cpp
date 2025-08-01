@@ -55,8 +55,8 @@ int main(int argc, char** argv){
     init_mintd(&ctx);
     std::vector<lt::torrent_handle> handles;
     listen(ctx.srv_fd, 1);
-    bool done = false;
-    while (!done){
+    ctx.done = false;
+    while (!ctx.done){
         int client = accept(ctx.srv_fd, NULL, NULL);
         if (client != -1){
             handle_client(&ctx, client);
