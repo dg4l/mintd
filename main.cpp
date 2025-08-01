@@ -81,6 +81,7 @@ bool cmd_pause_all(ServerContext* ctx, ResponseContext* response){
 std::string craft_torrent_status_string(lt::torrent_status& status){
     std::string status_str;
     float percent_done = status.progress * 100;
+    // appending is a little messy but it's fine for now
     status_str += status.name;
     status_str += " ";
     status_str += std::to_string(percent_done);
@@ -104,7 +105,6 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
     if (!handle_cnt){
         response->message += "no torrents added";
     }
-    // appending is a little messy but it's fine for now
     for (std::size_t i = 0; i < handle_cnt; ++i){
         lt::torrent_status status = handles[i].status();
         response->message += std::to_string(i);
