@@ -15,7 +15,11 @@
 
 enum CMDS{
     CMD_ADD,
-    CMD_QUERY_STATUS
+    CMD_QUERY_STATUS,
+    CMD_PAUSE_ALL,
+    CMD_PAUSE_IDX,
+    CMD_RESUME_ALL,
+    CMD_RESUME_IDX
 };
 
 typedef struct ServerContext{
@@ -38,6 +42,42 @@ bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL){
     return true;
 }
 
+bool cmd_resume_all(ServerContext* ctx, ResponseContext* response){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    for (size_t i = 0; i < handles.size(); ++i){
+        handles[i].resume();
+    }
+    response->message = "resumed";
+    return true;
+}
+
+bool cmd_pause_idx(ServerContext* ctx, ResponseContext* response, uint16_t idx){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    if (idx < handles.size()){
+        handles[idx].pause();
+    }
+    response->message = "PAUSED";
+    return true;
+}
+
+bool cmd_resume_idx(ServerContext* ctx, ResponseContext* response, unsigned int idx){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    if (idx < handles.size()){
+        handles[idx].resume();
+    }
+    response->message = "RESUMED";
+    return true;
+}
+
+bool cmd_pause_all(ServerContext* ctx, ResponseContext* response){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    for (size_t i = 0; i < handles.size(); ++i){
+        handles[i].pause();
+    }
+    response->message = "PAUSED ALL";
+    return true;
+}
+
 bool cmd_status(ServerContext* ctx, ResponseContext* response){
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     response->message = "";
@@ -49,10 +89,18 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
     for (std::size_t i = 0; i < handle_cnt; ++i){
         lt::torrent_status status = handles[i].status();
         float percent_done = status.progress * 100;
+        response->message += std::to_string(i);
+        response->message += ": ";
         response->message += status.name;
         response->message += " ";
         response->message += std::to_string(percent_done);
         response->message += "%";
+        if (status.flags & lt::torrent_flags::paused){
+            response->message += " PAUSED";
+        }
+        else{
+            response->message += " UNPAUSED";
+        }
         if (status.is_seeding){
             response->message += " SEEDING";
         }
@@ -81,6 +129,11 @@ bool packet_has_magic(char* packet){
     return (packet[0] == 'M' && packet[1] == 'T');
 }
 
+uint32_t extract_idx_from_packet(char* packet){
+    uint32_t idx = ((uint32_t)packet[4] << 24) | ((uint32_t)packet[5] << 16) | ((uint32_t)packet[6] << 8) | (uint32_t)packet[7];
+    return idx;
+}
+
 bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     ResponseContext response;
     response.message = "default";
@@ -93,6 +146,22 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
         case CMD_QUERY_STATUS:
             ret = cmd_status(ctx, &response);
             break;
+        case CMD_PAUSE_ALL:
+            ret = cmd_pause_all(ctx, &response);
+            break;
+        case CMD_RESUME_ALL:
+            ret = cmd_resume_all(ctx, &response);
+            break;
+        case CMD_PAUSE_IDX:{
+            uint32_t idx = extract_idx_from_packet(packet);
+            ret = cmd_pause_idx(ctx, &response, idx);
+            break;
+        }
+        case CMD_RESUME_IDX:{
+            uint32_t idx = extract_idx_from_packet(packet);
+            ret = cmd_resume_idx(ctx, &response, idx);
+            break;
+        }
         default:
             ret = false;
     }
