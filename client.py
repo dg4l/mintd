@@ -30,6 +30,9 @@ def create_resume_all_packet() -> bytes:
 def create_pause_packet(idx) -> bytes:
     return mintd_magic + Commands.PAUSE_IDX.to_bytes(2) + int(idx).to_bytes(4, signed=False)
 
+def create_resume_packet(idx) -> bytes:
+    return mintd_magic + Commands.RESUME_IDX.to_bytes(2) + int(idx).to_bytes(4, signed=False)
+
 def create_status_packet() -> bytes:
     return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)
 
@@ -39,7 +42,7 @@ def mintd_status(args):
     print(response.decode('utf-8'))
 
 def create_add_packet(magnet_url) -> bytes:
-    return mintd_magic + Commands.ADD.to_bytes(2, byteorder='little') + bytes(4) + magnet_url.encode('utf-8')
+    return mintd_magic + Commands.ADD.to_bytes(2) + bytes(4) + magnet_url.encode('utf-8')
 
 def mintd_add(args):
     packet = create_add_packet(args.magnet_url)
@@ -67,10 +70,8 @@ def mintd_resume(args):
         else:
             print(f"input {idx} is invalid")
     else:
-        print("not implemented")
-        #packet = create_pause_packet(idx)
-        #print(packet)
-        #send_packet(packet)
+        packet = create_resume_packet(idx)
+        send_packet(packet)
 
 def create_add_parser(subparser):
     add_parser = subparser.add_parser('add')
@@ -92,7 +93,7 @@ def create_pause_parser(subparser):
     pause_parser.set_defaults(func=mintd_pause)
 
 def create_resume_parser(subparser):
-    pause_parser = subparser.add_parser('resume')
+    pause_parser = subparser.add_parser('resume', aliases=["unpause"])
     pause_parser.add_argument('num')
     pause_parser.set_defaults(func=mintd_resume)
 
