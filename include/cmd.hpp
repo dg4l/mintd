@@ -4,6 +4,7 @@
 
 bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL);
 bool cmd_resume_all(ServerContext* ctx, ResponseContext* response);
+bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned int idx);
 bool cmd_pause_idx(ServerContext* ctx, ResponseContext* response, uint16_t idx);
 bool cmd_resume_idx(ServerContext* ctx, ResponseContext* response, unsigned int idx);
 bool cmd_pause_all(ServerContext* ctx, ResponseContext* response);

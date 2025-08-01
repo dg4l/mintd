@@ -12,6 +12,7 @@ class Commands:
     PAUSE_IDX = 0x3
     RESUME_ALL = 0x4
     RESUME_IDX = 0x5
+    REMOVE_TORRENT = 0x6
 
 def send_packet(packet) -> bytes:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
@@ -36,6 +37,9 @@ def create_resume_packet(idx) -> bytes:
 def create_status_packet() -> bytes:
     return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)
 
+def create_remove_packet(idx) -> bytes:
+    return mintd_magic + Commands.REMOVE_TORRENT.to_bytes(2) + int(idx).to_bytes(4, signed=False)
+
 def mintd_status(args):
     packet = create_status_packet()
     response = send_packet(packet)
@@ -48,6 +52,10 @@ def mintd_add(args):
     packet = create_add_packet(args.magnet_url)
     response = send_packet(packet)
     print(response.decode('utf-8'))
+
+def mintd_remove(args):
+    packet = create_remove_packet(args.num)
+    send_packet(packet)
 
 def mintd_pause(args):
     idx = args.num
@@ -81,7 +89,7 @@ def create_add_parser(subparser):
 def create_remove_parser(subparser):
     remove_parser = subparser.add_parser('remove')
     remove_parser.add_argument('num')
-    remove_parser.set_defaults(func=mintd_add)
+    remove_parser.set_defaults(func=mintd_remove)
 
 def create_status_parser(subparser):
     status_parser = subparser.add_parser('status')
@@ -104,6 +112,7 @@ def parse_cmd():
     create_status_parser(subparser)
     create_pause_parser(subparser)
     create_resume_parser(subparser)
+    create_remove_parser(subparser)
     args = parser.parse_args()
     return args
 

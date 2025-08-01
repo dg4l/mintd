@@ -1,4 +1,14 @@
 #include "cmd.hpp"
+#include "common_include.hpp"
+
+bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned int idx){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    if (idx < handles.size()){
+        ctx->session->remove_torrent(handles[idx]);
+    }
+    response->message = "REMOVED";
+    return true;
+}
 
 bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL){
     lt::add_torrent_params atp = lt::parse_magnet_uri(URL);
@@ -89,6 +99,11 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
         case CMD_RESUME_IDX:{
             uint32_t idx = extract_idx_from_packet(packet);
             ret = cmd_resume_idx(ctx, &response, idx);
+            break;
+        }
+        case CMD_REMOVE_TORRENT:{
+            uint32_t idx = extract_idx_from_packet(packet);
+            ret = cmd_remove_torrent(ctx, &response, idx);
             break;
         }
         default:
