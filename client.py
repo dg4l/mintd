@@ -28,7 +28,7 @@ def create_resume_all_packet() -> bytes:
     return mintd_magic + Commands.RESUME_ALL.to_bytes(2) + bytes(4)
 
 def create_pause_packet(idx) -> bytes:
-    return mintd_magic + Commands.PAUSE_IDX.to_bytes(2) + int(idx).to_bytes(4)
+    return mintd_magic + Commands.PAUSE_IDX.to_bytes(2) + int(idx).to_bytes(4, signed=False)
 
 def create_status_packet() -> bytes:
     return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)

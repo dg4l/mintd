@@ -130,7 +130,7 @@ bool packet_has_magic(char* packet){
 }
 
 uint32_t extract_idx_from_packet(char* packet){
-    uint32_t idx = ((uint32_t)packet[4] << 24) | ((uint32_t)packet[5] << 16) | ((uint32_t)packet[6] << 8) | (uint32_t)packet[7];
+    uint32_t idx = ((uint8_t)packet[4] << 24) | ((uint8_t)packet[5] << 16) | ((uint8_t)packet[6] << 8) | (uint8_t)packet[7];
     return idx;
 }
 
