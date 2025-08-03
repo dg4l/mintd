@@ -13,6 +13,9 @@ class Commands:
     RESUME_ALL = 0x4
     RESUME_IDX = 0x5
     REMOVE_TORRENT = 0x6
+    QUERY_STATS = 0x7
+    QUERY_STATS_ALLTIME = 0x8
+
 
 def send_packet(packet) -> bytes:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
@@ -27,6 +30,9 @@ def create_pause_all_packet() -> bytes:
 
 def create_resume_all_packet() -> bytes:
     return mintd_magic + Commands.RESUME_ALL.to_bytes(2) + bytes(4)
+
+def create_query_stats_packet() -> bytes:
+    return mintd_magic + Commands.QUERY_STATS.to_bytes(2) + bytes(4)
 
 def create_pause_packet(idx) -> bytes:
     return mintd_magic + Commands.PAUSE_IDX.to_bytes(2) + int(idx).to_bytes(4, signed=False)
@@ -56,6 +62,11 @@ def mintd_add(args):
 def mintd_remove(args):
     packet = create_remove_packet(args.num)
     send_packet(packet)
+
+def mintd_stats(args):
+    packet = create_query_stats_packet()
+    res = send_packet(packet)
+    print(res.decode('utf-8'))
 
 def mintd_pause(args):
     idx = args.num
@@ -105,6 +116,10 @@ def create_resume_parser(subparser):
     pause_parser.add_argument('num')
     pause_parser.set_defaults(func=mintd_resume)
 
+def create_stats_parser(subparser):
+    pause_parser = subparser.add_parser('stats') 
+    pause_parser.set_defaults(func=mintd_stats)
+
 def parse_cmd():
     parser = argparse.ArgumentParser(description='tiny client for mintd')
     subparser = parser.add_subparsers(dest='cmd', required=True)
@@ -113,6 +128,7 @@ def parse_cmd():
     create_pause_parser(subparser)
     create_resume_parser(subparser)
     create_remove_parser(subparser)
+    create_stats_parser(subparser)
     args = parser.parse_args()
     return args
 

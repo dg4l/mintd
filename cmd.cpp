@@ -73,6 +73,30 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
     return true;
 }
 
+// todo: implement
+bool cmd_query_stats_alltime(ServerContext* ctx){
+    return true;
+}
+
+// for current session
+bool cmd_query_stats(ServerContext* ctx, ResponseContext* response){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    std::size_t handle_cnt = handles.size();
+    std::size_t total_upload = 0;
+    std::size_t total_download = 0;
+    response->message = "";
+    for (std::size_t i = 0; i < handle_cnt; ++i){
+        total_upload += handles[i].status().total_upload;
+        total_download += handles[i].status().total_download;
+    }
+    response->message += "Total Upload: ";
+    response->message += std::to_string(total_upload);
+    response->message += "\n";
+    response->message += "Total Download: ";
+    response->message += std::to_string(total_download);
+    return true;
+}
+
 bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     ResponseContext response;
     response.message = "default";
@@ -106,6 +130,9 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
             ret = cmd_remove_torrent(ctx, &response, idx);
             break;
         }
+        case CMD_QUERY_STATS:
+            ret = cmd_query_stats(ctx, &response);
+            break;
         default:
             ret = false;
     }

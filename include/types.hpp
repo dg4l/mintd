@@ -9,7 +9,9 @@ enum CMDS{
     CMD_PAUSE_IDX,
     CMD_RESUME_ALL,
     CMD_RESUME_IDX,
-    CMD_REMOVE_TORRENT
+    CMD_REMOVE_TORRENT,
+    CMD_QUERY_STATS,
+    CMD_QUERY_STATS_ALLTIME
 };
 
 typedef struct ServerContext{
