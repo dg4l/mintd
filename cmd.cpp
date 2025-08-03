@@ -86,8 +86,9 @@ bool cmd_query_stats(ServerContext* ctx, ResponseContext* response){
     std::size_t total_download = 0;
     response->message = "";
     for (std::size_t i = 0; i < handle_cnt; ++i){
-        total_upload += handles[i].status().total_upload;
-        total_download += handles[i].status().total_download;
+        lt::torrent_status status = handles[i].status();
+        total_upload += status.total_upload;
+        total_download += status.total_download;
     }
     response->message += "Total Upload: ";
     response->message += std::to_string(total_upload);
