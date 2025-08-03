@@ -46,6 +46,16 @@ def create_status_packet() -> bytes:
 def create_remove_packet(idx) -> bytes:
     return mintd_magic + Commands.REMOVE_TORRENT.to_bytes(2) + int(idx).to_bytes(4, signed=False)
 
+def create_invalid_packet() -> bytes:
+    tmp = 0xFFFF
+    return mintd_magic + tmp.to_bytes(2) + bytes(4)
+
+def mintd_invalid(args):
+    packet = create_invalid_packet()
+    response = send_packet(packet)
+    print(response.decode('utf-8'))
+
+
 def mintd_status(args):
     packet = create_status_packet()
     response = send_packet(packet)
@@ -120,6 +130,11 @@ def create_stats_parser(subparser):
     pause_parser = subparser.add_parser('stats') 
     pause_parser.set_defaults(func=mintd_stats)
 
+def create_invalid_parser(subparser):
+    pause_parser = subparser.add_parser('invalid')
+    pause_parser.set_defaults(func=mintd_invalid)
+
+
 def parse_cmd():
     parser = argparse.ArgumentParser(description='tiny client for mintd')
     subparser = parser.add_subparsers(dest='cmd', required=True)
@@ -129,6 +144,7 @@ def parse_cmd():
     create_resume_parser(subparser)
     create_remove_parser(subparser)
     create_stats_parser(subparser)
+    create_invalid_parser(subparser)
     args = parser.parse_args()
     return args
 

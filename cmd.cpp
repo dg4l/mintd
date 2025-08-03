@@ -1,3 +1,4 @@
+//#include <fstream>
 #include "cmd.hpp"
 #include "common_include.hpp"
 
@@ -43,6 +44,11 @@ bool cmd_resume_idx(ServerContext* ctx, ResponseContext* response, unsigned int 
     }
     response->message = "RESUMED";
     return true;
+}
+
+bool cmd_invalid(ServerContext* ctx, ResponseContext* response){
+    response->message = "ERROR: INVALID COMMAND";
+    return false;
 }
 
 bool cmd_pause_all(ServerContext* ctx, ResponseContext* response){
@@ -101,7 +107,7 @@ bool cmd_query_stats(ServerContext* ctx, ResponseContext* response){
 bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     ResponseContext response;
     response.message = "default";
-    bool ret;
+    bool ret = false;
     uint16_t command = packet[3] | (packet[2] << 8);
     switch(command){
         case CMD_ADD:
@@ -135,7 +141,8 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
             ret = cmd_query_stats(ctx, &response);
             break;
         default:
-            ret = false;
+            ret = cmd_invalid(ctx, &response);
+            break;
     }
     send(client_fd, response.message.c_str(), strlen(response.message.c_str()), 0);
     return ret;
