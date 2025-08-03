@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -52,16 +53,25 @@ void handle_alerts(ServerContext* ctx){
 
 int main(int argc, char** argv){
     ServerContext ctx;
+    struct pollfd poll_fd;
+    poll_fd.events = POLLIN;
     init_mintd(&ctx);
     std::vector<lt::torrent_handle> handles;
+    poll_fd.fd = ctx.srv_fd;
     listen(ctx.srv_fd, 1);
     ctx.done = false;
     while (!ctx.done){
-        int client = accept(ctx.srv_fd, NULL, NULL);
-        if (client != -1){
-            handle_client(&ctx, client);
-            close(client);
-        } 
+        int poll_result = poll(&poll_fd, 1, 200);
+        if (poll_result < 0){
+            fprintf(stderr, "poll error\n");
+        }
+        if (poll_fd.revents & POLLIN){
+            int client = accept(ctx.srv_fd, NULL, NULL);
+            if (client != -1){
+                handle_client(&ctx, client);
+                close(client);
+            }
+        }
         handle_alerts(&ctx);
         if (ctx.done){
             continue;
