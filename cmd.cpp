@@ -72,7 +72,7 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
         response->message += std::to_string(i);
         response->message += ": ";
         response->message += craft_torrent_status_string(status);
-        if (i < handles.size() - 1){
+        if (i < handle_cnt - 1){
             response->message += '\n';
         }
     }
