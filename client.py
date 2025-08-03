@@ -65,8 +65,8 @@ def mintd_remove(args):
 
 def mintd_stats(args):
     packet = create_query_stats_packet()
-    res = send_packet(packet)
-    print(res.decode('utf-8'))
+    response = send_packet(packet)
+    print(response.decode('utf-8'))
 
 def mintd_pause(args):
     idx = args.num
