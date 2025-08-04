@@ -11,6 +11,7 @@ bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned 
     return true;
 }
 
+//bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL, char* save_path){
 bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL){
     lt::add_torrent_params atp = lt::parse_magnet_uri(URL);
     atp.save_path = ".";

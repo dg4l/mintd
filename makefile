@@ -1,2 +1,2 @@
 all:
-	g++ main.cpp cmd.cpp util.cpp -I./include -O2 -ltorrent-rasterbar -Wunused-variable -o mintd
+	g++ ./src/main.cpp ./src/cmd.cpp ./src/util.cpp -I./src/include -O2 -ltorrent-rasterbar -Wunused-variable -o mintd
