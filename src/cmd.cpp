@@ -13,18 +13,21 @@ bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned 
 
 // todo: cleanup, this is a mess, replace magic numbers with named constants 
 bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet){
-    uint16_t url_len = packet[9] | (packet[8] << 8);
+    uint16_t url_len = (uint8_t)packet[9] | ((uint8_t)packet[8] << 8);
     uint16_t save_path_len = 0;
     if (!url_len){
         return false;
     }
+    std::cout << url_len << std::endl;
     parsed_packet->url = std::string(packet + 10, packet + 10 + url_len);
+    std::cout << parsed_packet->url << std::endl;
     save_path_len = (uint8_t)packet[11 + url_len] | (uint8_t)(packet[10 + url_len]) << 8;
     if (!save_path_len){
         parsed_packet->save_path = ".";
     }
     else{
         parsed_packet->save_path = std::string(packet + 12 + url_len, packet + 12 + url_len + save_path_len);
+        std::cout << parsed_packet->save_path << std::endl;
     }
     return true;
 }
