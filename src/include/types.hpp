@@ -26,3 +26,8 @@ typedef struct ServerContext{
 typedef struct ResponseContext{
     std::string message;
 }ResponseContext;
+
+typedef struct ParsedAddPacket{
+    std::string url;
+    std::string save_path;
+}ParsedAddPacket;

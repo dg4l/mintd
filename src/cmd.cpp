@@ -11,10 +11,35 @@ bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned 
     return true;
 }
 
-//bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL, char* save_path){
-bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* URL){
-    lt::add_torrent_params atp = lt::parse_magnet_uri(URL);
-    atp.save_path = ".";
+// todo: cleanup, this is a mess, replace magic numbers with named constants 
+bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet){
+    uint16_t url_len = packet[9] | (packet[8] << 8);
+    uint16_t save_path_len = 0;
+    if (!url_len){
+        return false;
+    }
+    parsed_packet->url = std::string(packet + 10, packet + 10 + url_len);
+    save_path_len = (uint8_t)packet[11 + url_len] | (uint8_t)(packet[10 + url_len]) << 8;
+    if (!save_path_len){
+        parsed_packet->save_path = ".";
+    }
+    else{
+        parsed_packet->save_path = std::string(packet + 12 + url_len, packet + 12 + url_len + save_path_len);
+    }
+    return true;
+}
+
+// parse packet inline for now, if i feel like it 
+// maybe factor out and pass a struct returned from the parser into this function
+// rather than doing parsing inline
+bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* packet){
+    ParsedAddPacket parsed_packet;
+    if (!parse_add_packet(packet, &parsed_packet)){
+        response->message = "INVALID PACKET";
+        return false;
+    }
+    lt::add_torrent_params atp = lt::parse_magnet_uri(parsed_packet.url);
+    atp.save_path = parsed_packet.save_path;
     ctx->session->add_torrent(std::move(atp));
     response->message = "ADDED";
     return true;
@@ -112,7 +137,7 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
     uint16_t command = packet[3] | (packet[2] << 8);
     switch(command){
         case CMD_ADD:
-            ret = cmd_add_torrent(ctx, &response, packet + 8);
+            ret = cmd_add_torrent(ctx, &response, packet);
             break;
         case CMD_QUERY_STATUS:
             ret = cmd_status(ctx, &response);
