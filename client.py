@@ -66,8 +66,6 @@ def create_add_packet_no_path(magnet_url) -> bytes:
     return mintd_magic + Commands.ADD.to_bytes(2) + bytes(4) + len(magnet_url.encode('utf-8')).to_bytes(2) + magnet_url.encode('utf-8') + bytes(2) 
 
 def create_add_packet(magnet_url, file_path) -> bytes:
-    print(file_path)
-    print(file_path.encode('utf-8'))
     return mintd_magic + Commands.ADD.to_bytes(2) + bytes(4) + len(magnet_url.encode('utf-8')).to_bytes(2) + magnet_url.encode('utf-8') + len(file_path.encode('utf-8')).to_bytes(2) + file_path.encode('utf-8')
 
 def mintd_add(args):
