@@ -18,21 +18,18 @@ bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet){
     if (!url_len){
         return false;
     }
-    std::cout << url_len << std::endl;
     parsed_packet->url = std::string(packet + 10, packet + 10 + url_len);
-    std::cout << parsed_packet->url << std::endl;
     save_path_len = (uint8_t)packet[11 + url_len] | (uint8_t)(packet[10 + url_len]) << 8;
     if (!save_path_len){
         parsed_packet->save_path = ".";
     }
     else{
         parsed_packet->save_path = std::string(packet + 12 + url_len, packet + 12 + url_len + save_path_len);
-        std::cout << parsed_packet->save_path << std::endl;
     }
     return true;
 }
 
-// parse packet inline for now, if i feel like it 
+// parse packet inline for now. if i feel like it,
 // maybe factor out and pass a struct returned from the parser into this function
 // rather than doing parsing inline
 bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* packet){
