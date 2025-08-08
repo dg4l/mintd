@@ -1,6 +1,8 @@
 #pragma once
 #include "common_include.hpp"
 #define DEBUG 0
+#define MAX_PACKET_SIZE 10000
+#define MAX_URL_LEN 8000 
 
 enum CMDS{
     CMD_ADD,
