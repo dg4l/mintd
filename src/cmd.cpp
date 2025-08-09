@@ -102,8 +102,9 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
     }
     for (std::size_t i = 0; i < handle_cnt; ++i){
         lt::torrent_status status = handles[i].status();
+        response->message += "[";
         response->message += std::to_string(i);
-        response->message += ": ";
+        response->message += "]: ";
         response->message += craft_torrent_status_string(status);
         if (i < handle_cnt - 1){
             response->message += '\n';

@@ -1,17 +1,23 @@
 #include "util.hpp"
 
+// todo: make this function less ugly.
 std::string craft_torrent_status_string(lt::torrent_status& status){
     std::string status_str;
     float percent_done = status.progress * 100;
     // appending is a little messy but it's fine for now
+    status_str += "[NAME: ";
     status_str += status.name;
-    status_str += " ";
+    status_str += "] [DONE: ";
     status_str += std::to_string(percent_done);
-    status_str += "%";
+    status_str += "%] [STATE:";
     status_str += (status.flags & lt::torrent_flags::paused) ? " PAUSED" : " UNPAUSED";
     if (status.is_seeding){
         status_str += " SEEDING";
     }
+    status_str += "]";
+    status_str += " [PATH: \"";
+    status_str += status.save_path;
+    status_str += "\"]";
     return status_str;
 }
 
