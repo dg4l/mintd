@@ -1,7 +1,7 @@
 CXX = g++
 INC = -I./src/include
 CXXFLAGS = -g -O2 $(INC) -Wall -Wunused-variable
-LDFLAGS = -ltorrent-rasterbar
+LDFLAGS = -ltorrent-rasterbar -rdynamic
 
 BUILD_DIR = build
 SRC_DIR = src

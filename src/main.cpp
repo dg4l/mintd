@@ -2,6 +2,8 @@
 #include <thread>
 #include <chrono>
 #include <poll.h>
+#include <signal.h>
+#include <execinfo.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -51,6 +53,15 @@ void handle_alerts(ServerContext* ctx){
     }
 }
 
+void dump_stack_trace(int sig){
+  void *array[10];
+  size_t size;
+  size = backtrace(array, 10);
+  fprintf(stderr, "signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
 int main(int argc, char** argv){
     ServerContext ctx;
     struct pollfd poll_fd;
@@ -60,6 +71,7 @@ int main(int argc, char** argv){
     poll_fd.fd = ctx.srv_fd;
     listen(ctx.srv_fd, 1);
     ctx.done = false;
+    signal(SIGSEGV, dump_stack_trace);
     while (!ctx.done){
         int poll_result = poll(&poll_fd, 1, 200);
         if (poll_result < 0){
