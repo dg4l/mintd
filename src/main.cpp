@@ -54,12 +54,12 @@ void handle_alerts(ServerContext* ctx){
 }
 
 void dump_stack_trace(int sig){
-  void *array[10];
-  size_t size;
-  size = backtrace(array, 10);
-  fprintf(stderr, "signal %d:\n", sig);
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(1);
+    void *array[10];
+    size_t size;
+    size = backtrace(array, 10);
+    fprintf(stderr, "signal %d:\n", sig);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    exit(1);
 }
 
 int main(int argc, char** argv){
