@@ -10,3 +10,11 @@ a minimal torrent daemon written in C++
 * the rest depends on the `cmd` 
 
 To see an example **client** implementation, see [client.py](client.py).
+
+## Building
+
+```bash
+cd src
+meson setup build
+meson compile
+```
