@@ -16,5 +16,6 @@ To see an example **client** implementation, see [client.py](client.py).
 ```bash
 cd src
 meson setup build
+cd build
 meson compile
 ```
