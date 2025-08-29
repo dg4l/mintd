@@ -22,7 +22,7 @@
 #include "cmd.hpp"
 #include "util.hpp"
 #include "types.hpp"
-#include "global.h"
+#include "global.hpp"
 using namespace std::literals;
 
 bool DEBUG = false;
