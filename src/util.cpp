@@ -1,5 +1,5 @@
 #include "util.hpp"
-#include "global.h"
+#include "global.hpp"
 
 // this function should give more extensive information compared to craft_torrent_status_string_standard 
 // also consider changing from taking in a torrent_status to taking in a torrent_handle.
