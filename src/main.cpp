@@ -179,7 +179,6 @@ int main(int argc, char** argv){
                 DEBUG = true;
                 break;
             //case 'b':
-            //    // get interface bind as char* in ServerContext
             //    break;
         }
     }
