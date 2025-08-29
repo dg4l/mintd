@@ -1,4 +1,6 @@
 //#include <fstream>
+#include <iostream>
+#include <string>
 #include "cmd.hpp"
 #include "common_include.hpp"
 #define MAX_URL_LEN 8000
@@ -93,6 +95,15 @@ bool cmd_pause_all(ServerContext* ctx, ResponseContext* response){
     return true;
 }
 
+bool cmd_query_torrent_status(ServerContext* ctx, ResponseContext* response, unsigned int idx){
+    std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
+    if (idx < handles.size()){
+        lt::torrent_status status = handles[idx].status();
+        response->message = craft_torrent_status_string_extra(status);
+    }
+    return true;
+}
+
 bool cmd_status(ServerContext* ctx, ResponseContext* response){
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     response->message = "";
@@ -105,7 +116,7 @@ bool cmd_status(ServerContext* ctx, ResponseContext* response){
         response->message += "[";
         response->message += std::to_string(i);
         response->message += "]: ";
-        response->message += craft_torrent_status_string(status);
+        response->message += craft_torrent_status_string_standard(status);
         if (i < handle_cnt - 1){
             response->message += '\n';
         }
@@ -169,6 +180,12 @@ bool handle_command(ServerContext* ctx, int client_fd, char* packet){
         case CMD_REMOVE_TORRENT:{
             uint32_t idx = extract_idx_from_packet(packet);
             ret = cmd_remove_torrent(ctx, &response, idx);
+            break;
+        }
+        // todo: impl
+        case CMD_QUERY_TORRENT_STATUS:{
+            uint32_t idx = extract_idx_from_packet(packet);
+            ret = cmd_query_torrent_status(ctx, &response, idx);
             break;
         }
         case CMD_QUERY_STATS:

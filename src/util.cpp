@@ -1,7 +1,39 @@
 #include "util.hpp"
+#include "global.h"
+
+// this function should give more extensive information compared to craft_torrent_status_string_standard 
+// also consider changing from taking in a torrent_status to taking in a torrent_handle.
+// also should give a progress bar (because it looks nice)
+std::string craft_torrent_status_string_extra(lt::torrent_status& status){
+    std::string status_str;
+    float percent_done = status.progress * 100;
+    status_str += "[NAME]: ";
+    status_str += status.name;
+    status_str += "\n";
+    status_str += "[DONE]: ";
+    status_str += std::to_string(percent_done);
+    status_str += "%";
+    status_str += "\n";
+    status_str += "[DOWN]: ";
+    status_str += std::to_string(status.download_rate);
+    status_str += " B/S";
+    status_str += "\n";
+    status_str += "[UP]: ";
+    status_str += std::to_string(status.upload_rate);
+    status_str += " B/S";
+    status_str += "\n";
+    status_str += "[PEER COUNT]: ";
+    status_str += std::to_string(status.num_peers);
+    status_str += "\n";
+    status_str += "[SEED COUNT]: ";
+    status_str += std::to_string(status.num_seeds);
+    status_str += "\n";
+    return status_str;
+}
 
 // todo: make this function less ugly.
-std::string craft_torrent_status_string(lt::torrent_status& status){
+// consider changing from taking in a torrent_status to taking in a torrent_handled.
+std::string craft_torrent_status_string_standard(lt::torrent_status& status){
     std::string status_str;
     float percent_done = status.progress * 100;
     // appending is a little messy but it's fine for now

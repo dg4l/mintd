@@ -15,6 +15,7 @@ class Commands:
     REMOVE_TORRENT = 0x6
     QUERY_STATS = 0x7
     QUERY_STATS_ALLTIME = 0x8
+    QUERY_TORRENT_STATUS = 0x9
 
 
 def send_packet(packet) -> bytes:
@@ -43,6 +44,9 @@ def create_resume_packet(idx) -> bytes:
 def create_status_packet() -> bytes:
     return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)
 
+def create_status_extra_packet(idx) -> bytes:
+    return mintd_magic + Commands.QUERY_TORRENT_STATUS.to_bytes(2) + bytes(4) + int(idx).to_bytes(4, signed=False)
+
 def create_remove_packet(idx) -> bytes:
     return mintd_magic + Commands.REMOVE_TORRENT.to_bytes(2) + int(idx).to_bytes(4, signed=False)
 
@@ -55,9 +59,11 @@ def mintd_invalid(args):
     response = send_packet(packet)
     print(response.decode('utf-8'))
 
-
 def mintd_status(args):
-    packet = create_status_packet()
+    if args.torrent is not None:
+        packet = create_status_extra_packet(args.torrent) 
+    else:
+        packet = create_status_packet()
     response = send_packet(packet)
     print(response.decode('utf-8'))
 
@@ -120,8 +126,10 @@ def create_remove_parser(subparser):
     remove_parser.add_argument('num')
     remove_parser.set_defaults(func=mintd_remove)
 
+# todo: support specific idx.
 def create_status_parser(subparser):
     status_parser = subparser.add_parser('status')
+    status_parser.add_argument('-t', "--torrent")
     status_parser.set_defaults(func=mintd_status)
 
 def create_pause_parser(subparser):
