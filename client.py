@@ -45,7 +45,7 @@ def create_status_packet() -> bytes:
     return mintd_magic + Commands.QUERY_STATUS.to_bytes(2) + bytes(4)
 
 def create_status_extra_packet(idx) -> bytes:
-    return mintd_magic + Commands.QUERY_TORRENT_STATUS.to_bytes(2) + bytes(4) + int(idx).to_bytes(4, signed=False)
+    return mintd_magic + Commands.QUERY_TORRENT_STATUS.to_bytes(2) + int(idx).to_bytes(4, signed=False)
 
 def create_remove_packet(idx) -> bytes:
     return mintd_magic + Commands.REMOVE_TORRENT.to_bytes(2) + int(idx).to_bytes(4, signed=False)
@@ -60,7 +60,7 @@ def mintd_invalid(args):
     print(response.decode('utf-8'))
 
 def mintd_status(args):
-    if args.torrent is not None:
+    if args.torrent is not None and args.torrent.isdigit():
         packet = create_status_extra_packet(args.torrent) 
     else:
         packet = create_status_packet()
