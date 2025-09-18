@@ -37,8 +37,8 @@ bool init_mintd(ServerContext* ctx) {
         settings_pak.set_str(lt::settings_pack::listen_interfaces, ctx->incoming_interface);
     }
     if (DEBUG) {
-        std::cout << settings_pak.get_str(lt::settings_pack::outgoing_interfaces) << std::endl; 
-        std::cout << settings_pak.get_str(lt::settings_pack::listen_interfaces) << std::endl; 
+        printf("outgoing: %s\nlistening: %s\n", settings_pak.get_str(lt::settings_pack::outgoing_interfaces).c_str(),
+                settings_pak.get_str(lt::settings_pack::listen_interfaces).c_str());
     }
     ctx->session = new lt::session(settings_pak);
     ctx->srv_fd = socket(AF_UNIX, SOCK_STREAM, 0); 

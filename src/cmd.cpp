@@ -2,10 +2,14 @@
 #include <iostream>
 #include <string>
 #include "cmd.hpp"
+#include "global.hpp"
 #include "common_include.hpp"
 #define MAX_URL_LEN 8000
 
 bool cmd_remove_torrent(ServerContext* ctx, ResponseContext* response, unsigned int idx) {
+    if (DEBUG) {
+        printf("issued remove torrent command on idx %u\n", idx);
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     if (idx < handles.size()) {
         ctx->session->remove_torrent(handles[idx]);
@@ -42,12 +46,25 @@ bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet) {
 // maybe factor out and pass a struct returned from the parser into this function
 // rather than doing parsing inline
 bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* packet) {
+    if (DEBUG) {
+        printf("issued cmd add torrent\n");
+    }
     ParsedAddPacket parsed_packet;
+    lt::add_torrent_params atp;
     if (!parse_add_packet(packet, &parsed_packet)) {
         response->message = "INVALID PACKET";
         return false;
     }
-    lt::add_torrent_params atp = lt::parse_magnet_uri(parsed_packet.url);
+    if (DEBUG) {
+        printf("torrent parsed, magnet link is: %s\n", parsed_packet.url.c_str());
+    }
+    try {
+        atp = lt::parse_magnet_uri(parsed_packet.url);
+    }
+    catch (boost::system::system_error& err) {
+        response->message = "INVALID URL";
+        return false;
+    }
     atp.save_path = parsed_packet.save_path;
     ctx->session->add_torrent(std::move(atp));
     response->message = "ADDED";
@@ -55,6 +72,9 @@ bool cmd_add_torrent(ServerContext* ctx, ResponseContext* response, char* packet
 }
 
 bool cmd_resume_all(ServerContext* ctx, ResponseContext* response) {
+    if (DEBUG) {
+        printf("issued resume all cmd\n");
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     for (size_t i = 0; i < handles.size(); ++i) {
         handles[i].resume();
@@ -64,6 +84,9 @@ bool cmd_resume_all(ServerContext* ctx, ResponseContext* response) {
 }
 
 bool cmd_pause_idx(ServerContext* ctx, ResponseContext* response, uint16_t idx) {
+    if (DEBUG) {
+        printf("pause idx cmd, %u\n", idx);
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     if (idx < handles.size()) {
         handles[idx].pause();
@@ -73,6 +96,9 @@ bool cmd_pause_idx(ServerContext* ctx, ResponseContext* response, uint16_t idx) 
 }
 
 bool cmd_resume_idx(ServerContext* ctx, ResponseContext* response, unsigned int idx) {
+    if (DEBUG) {
+        printf("resume idx cmd, %u\n", idx);
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     if (idx < handles.size()) {
         handles[idx].resume();
@@ -87,6 +113,9 @@ bool cmd_invalid(ServerContext* ctx, ResponseContext* response) {
 }
 
 bool cmd_pause_all(ServerContext* ctx, ResponseContext* response) {
+    if (DEBUG) {
+        printf("pause all cmd\n");
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     for (size_t i = 0; i < handles.size(); ++i) {
         handles[i].pause();
@@ -107,6 +136,7 @@ bool cmd_query_torrent_status(ServerContext* ctx, ResponseContext* response, uns
 }
 
 bool cmd_status(ServerContext* ctx, ResponseContext* response) {
+    printf("issued status command\n");
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     response->message = "";
     std::size_t handle_cnt = handles.size();
@@ -133,6 +163,9 @@ bool cmd_query_stats_alltime(ServerContext* ctx) {
 
 // for current session
 bool cmd_query_stats(ServerContext* ctx, ResponseContext* response) {
+    if (DEBUG) {
+        printf("issued query stats command\n");
+    }
     std::vector<lt::torrent_handle> handles = ctx->session->get_torrents();
     std::size_t handle_cnt = handles.size();
     std::size_t total_upload = 0;
