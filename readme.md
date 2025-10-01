@@ -20,3 +20,10 @@ meson setup build
 cd build
 meson compile
 ```
+
+## Rough TODO
+### these mainly have to do with decreasing hackiness.
+* Improve packet parsing
+* Improve error handling
+
+
