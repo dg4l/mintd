@@ -1,6 +1,9 @@
 # mintd
 a minimal torrent daemon written in C++
 
+> [!CAUTION]
+> EXPERIMENTAL SOFTWARE !!!!!! THERE IS SOME HACKY STUFF, WILL BE FIXED LATER.
+
 
 ## ipc header protocol
 > [!CAUTION]
