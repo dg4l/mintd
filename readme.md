@@ -27,6 +27,6 @@ meson compile
 ## Rough TODO
 ### these mainly have to do with decreasing hackiness.
 * Improve packet parsing
-* Improve error handling
+* Reconsider how errors are handled (fatal / nonfatal)
 
 
