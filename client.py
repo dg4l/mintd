@@ -138,17 +138,17 @@ def create_pause_parser(subparser):
     pause_parser.set_defaults(func=mintd_pause)
 
 def create_resume_parser(subparser):
-    pause_parser = subparser.add_parser('resume', aliases=["unpause"])
-    pause_parser.add_argument('num')
-    pause_parser.set_defaults(func=mintd_resume)
+    resume_parser = subparser.add_parser('resume', aliases=["unpause"])
+    resume_parser.add_argument('num')
+    resume_parser.set_defaults(func=mintd_resume)
 
 def create_stats_parser(subparser):
-    pause_parser = subparser.add_parser('stats') 
-    pause_parser.set_defaults(func=mintd_stats)
+    stats_parser = subparser.add_parser('stats')
+    stats_parser.set_defaults(func=mintd_stats)
 
 def create_invalid_parser(subparser):
-    pause_parser = subparser.add_parser('invalid')
-    pause_parser.set_defaults(func=mintd_invalid)
+    invalid_parser = subparser.add_parser('invalid')
+    invalid_parser.set_defaults(func=mintd_invalid)
 
 
 def parse_cmd():
