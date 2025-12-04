@@ -113,7 +113,7 @@ bool cmd_resume_idx(ServerContext* ctx, ResponseContext* response, unsigned int 
         response->message = "RESUMED";
         return true;
     }
-    response->message = "FAILED WTF WTF";
+    response->message = "ERROR: invalid idx";
     return false;
 }
 
