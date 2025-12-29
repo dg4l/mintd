@@ -1,3 +1,4 @@
+#include <format>
 #include "util.hpp"
 #include "global.hpp"
 
@@ -5,51 +6,18 @@
 // also consider changing from taking in a torrent_status to taking in a torrent_handle.
 // also should give a progress bar (because it looks nice)
 std::string craft_torrent_status_string_extra(lt::torrent_status& status) {
-    std::string status_str;
     float percent_done = status.progress * 100;
-    status_str += "[NAME]: ";
-    status_str += status.name;
-    status_str += "\n";
-    status_str += "[DONE]: ";
-    status_str += std::to_string(percent_done);
-    status_str += "%";
-    status_str += "\n";
-    status_str += "[DOWN]: ";
-    status_str += std::to_string(status.download_rate);
-    status_str += " B/S";
-    status_str += "\n";
-    status_str += "[UP]: ";
-    status_str += std::to_string(status.upload_rate);
-    status_str += " B/S";
-    status_str += "\n";
-    status_str += "[PEER COUNT]: ";
-    status_str += std::to_string(status.num_peers);
-    status_str += "\n";
-    status_str += "[SEED COUNT]: ";
-    status_str += std::to_string(status.num_seeds);
-    status_str += "\n";
+    std::string status_str = std::format("[NAME]: {}\n[DONE]: {}%\n[DOWN]: {} B/S\n[UP]: {} B/S\n[PEER COUNT]: {}\n[SEED COUNT]: {}",
+            status.name, percent_done, status.download_rate, status.upload_rate, status.num_peers, status.num_seeds);
     return status_str;
 }
 
-// todo: make this function less ugly.
-// consider changing from taking in a torrent_status to taking in a torrent_handled.
+// consider changing from taking in a torrent_status to taking in a torrent_handle.
 std::string craft_torrent_status_string_standard(lt::torrent_status& status) {
-    std::string status_str;
     float percent_done = status.progress * 100;
-    // appending is a little messy but it's fine for now
-    status_str += "[NAME: ";
-    status_str += status.name;
-    status_str += "] [DONE: ";
-    status_str += std::to_string(percent_done);
-    status_str += "%] [STATE:";
-    status_str += (status.flags & lt::torrent_flags::paused) ? " PAUSED" : " UNPAUSED";
-    if (status.is_seeding) {
-        status_str += " SEEDING";
-    }
-    status_str += "]";
-    status_str += " [PATH: \"";
-    status_str += status.save_path;
-    status_str += "\"]";
+    std::string status_str = std::format("[NAME: {}] [DONE: {}%] [STATE: {}] [SEEDING: {}] [PATH: {}]",
+            status.name, percent_done, status.flags & lt::torrent_flags::paused ? " PAUSED" : " UNPAUSED",
+            status.is_seeding ? "YES" : "NO", status.save_path);
     return status_str;
 }
 
