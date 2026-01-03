@@ -27,7 +27,8 @@ using namespace std::literals;
 
 bool DEBUG = false;
 
-bool init_mintd(ServerContext* ctx) {
+// TODO: refactor to constructor for Server. didn't feel like doing this right now
+bool init_mintd(Server* ctx) {
     ctx->socket_path = "/tmp/mintd.socket";
     lt::settings_pack settings_pak;
     settings_pak.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
@@ -50,21 +51,21 @@ bool init_mintd(ServerContext* ctx) {
     return true;
 }
 
-void handle_client(ServerContext* ctx, int client) {
+void Server::handle_client(int client) {
     char packet[10000];
     int bytes = read(client, packet, sizeof(packet));
     packet[bytes] = 0;
-    handle_packet(ctx, client, packet);
+    this->handle_packet(client, packet);
     close(client);
 }
 
 // don't return a bool, just modify the done flag.
-void handle_alerts(ServerContext* ctx) {
+void Server::handle_alerts() {
     std::vector<lt::alert*> alerts;
-    ctx->session->pop_alerts(&alerts);
+    this->session->pop_alerts(&alerts);
     for (lt::alert const* alert : alerts) {
         if (lt::alert_cast<lt::torrent_error_alert>(alert)) {
-            ctx->done = true;
+            this->done = true;
             continue;
         }
     }
@@ -98,30 +99,28 @@ bool create_default_config_file(std::string config_path) {
     return true;
 }
 
+bool ensure_config_exists(std::string config_path) {
+    if (config_path.empty()) return false;
+    if (!std::filesystem::exists(config_path)) return create_default_config_file(config_path);
+    return true;
+}
+
 // **maybe** consider factoring some stuff out, i think checking if the config file exists inline
 // is the best way for now, but may not be in the future.
-bool parse_config_file(ServerContext* ctx) {
+bool Server::parse_config_file() {
     std::string config_path = get_config_path();
-    if (!config_path.empty()) {
-        if (!std::filesystem::exists(config_path)) {
-            if (!create_default_config_file(config_path)) {
-                return false;
-            }
-        }
-    }
+    if (!ensure_config_exists(config_path)) return false;
     toml::table config = toml::parse_file(config_path);
-    ctx->strict_bind = config["network"]["strict"].value_or(0);
+    this->strict_bind = config["network"]["strict"].value_or(0);
     DEBUG = config["developer"]["debug"].value_or(0);
-    if (DEBUG) {
-        std::cout << "debug enabled in config." << std::endl;
-    }
-    if (ctx->strict_bind) {
+    if (DEBUG) std::cout << "debug enabled in config." << std::endl;
+    if (this->strict_bind) {
         // we might be doing something redundant here.
-        ctx->outgoing_interface = std::string(config["network"]["outgoing_interface"].value_or(""sv));
-        ctx->incoming_interface = std::string(config["network"]["incoming_interface"].value_or(""sv));
+        this->outgoing_interface = std::string(config["network"]["outgoing_interface"].value_or(""sv));
+        this->incoming_interface = std::string(config["network"]["incoming_interface"].value_or(""sv));
         if (DEBUG) {
-            std::cout << ctx->incoming_interface << std::endl;
-            std::cout << ctx->outgoing_interface << std::endl;
+            std::cout << this->incoming_interface << std::endl;
+            std::cout << this->outgoing_interface << std::endl;
         }
     }
     return true;
@@ -138,10 +137,10 @@ void dump_stack_trace(int sig) {
 
 int main(int argc, char** argv) {
     int c;
-    ServerContext ctx;
+    Server ctx;
     struct pollfd poll_fd;
     poll_fd.events = POLLIN;
-    if (!parse_config_file(&ctx)) {
+    if (!ctx.parse_config_file()) {
         return 1;
     }
     // command line arguments should simply be overrides for the config file.
@@ -171,11 +170,11 @@ int main(int argc, char** argv) {
         if (poll_fd.revents & POLLIN) {
             int client = accept(ctx.srv_fd, NULL, NULL);
             if (client != -1) {
-                handle_client(&ctx, client);
+                ctx.handle_client(client);
                 close(client);
             }
         }
-        handle_alerts(&ctx);
+        ctx.handle_alerts();
         if (ctx.done) {
             continue;
         }

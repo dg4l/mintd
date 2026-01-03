@@ -31,7 +31,7 @@ uint32_t extract_idx_from_packet(char* packet) {
     return idx;
 }
 
-void handle_packet(ServerContext* ctx, int client_fd, char* packet) {
+void Server::handle_packet(int client_fd, char* packet) {
     const char* invalid_msg = "packet does not contain magic!";
     if (!packet_has_magic(packet)) {
         send(client_fd, invalid_msg, strlen(invalid_msg), 0);
@@ -40,7 +40,7 @@ void handle_packet(ServerContext* ctx, int client_fd, char* packet) {
     if (DEBUG) {
         std::cout << "packet contains magic MT" << std::endl;
     }
-    if (!handle_command(ctx, client_fd, packet)) {
+    if (!this->handle_command(client_fd, packet)) {
         fprintf(stderr, "error while handling command\n"); 
     }
 }

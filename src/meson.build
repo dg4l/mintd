@@ -1,5 +1,4 @@
-project('mintd', 'cpp',
-  default_options : ['cpp_std=c++20'])
+project('mintd', 'cpp', default_options : ['cpp_std=c++20'])
 lt_dep = dependency('libtorrent-rasterbar')
 tomlpp_dep = dependency('tomlplusplus')
 mintd_depends = [tomlpp_dep, lt_dep]
