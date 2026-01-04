@@ -27,27 +27,26 @@ using namespace std::literals;
 
 bool DEBUG = false;
 
-// TODO: refactor to constructor for Server. didn't feel like doing this right now
-bool init_mintd(Server* ctx) {
-    ctx->socket_path = "/tmp/mintd.socket";
+bool Server::init() {
+    this->socket_path = "/tmp/mintd.socket";
     lt::settings_pack settings_pak;
     settings_pak.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
     settings_pak.set_str(lt::settings_pack::user_agent, "mintd/0.1");
-    if (ctx->strict_bind) {
-        settings_pak.set_str(lt::settings_pack::outgoing_interfaces, ctx->outgoing_interface);
-        settings_pak.set_str(lt::settings_pack::listen_interfaces, ctx->incoming_interface);
+    if (this->strict_bind) {
+        settings_pak.set_str(lt::settings_pack::outgoing_interfaces, this->outgoing_interface);
+        settings_pak.set_str(lt::settings_pack::listen_interfaces, this->incoming_interface);
     }
     if (DEBUG) {
         printf("outgoing: %s\nlistening: %s\n", settings_pak.get_str(lt::settings_pack::outgoing_interfaces).c_str(),
                 settings_pak.get_str(lt::settings_pack::listen_interfaces).c_str());
     }
-    ctx->session = new lt::session(settings_pak);
-    ctx->srv_fd = socket(AF_UNIX, SOCK_STREAM, 0); 
-    memset(&ctx->server_addr, 0, sizeof(ctx->server_addr));
-    ctx->server_addr.sun_family = AF_UNIX;
-    strcpy(ctx->server_addr.sun_path, ctx->socket_path);
-    unlink(ctx->socket_path);
-    bind(ctx->srv_fd, (struct sockaddr*)&ctx->server_addr, sizeof(ctx->server_addr));
+    this->session = new lt::session(settings_pak);
+    this->srv_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    memset(&this->server_addr, 0, sizeof(this->server_addr));
+    this->server_addr.sun_family = AF_UNIX;
+    strcpy(this->server_addr.sun_path, this->socket_path);
+    unlink(this->socket_path);
+    bind(this->srv_fd, (struct sockaddr*)&this->server_addr, sizeof(this->server_addr));
     return true;
 }
 
@@ -154,7 +153,7 @@ int main(int argc, char** argv) {
             //    break;
         }
     }
-    if (!init_mintd(&ctx)) {
+    if (!ctx.init()) {
         return 1;
     }
     std::vector<lt::torrent_handle> handles;

@@ -30,7 +30,7 @@ typedef struct Server {
     lt::settings_pack settings;
     int srv_fd;
     bool done;
-    // TODO: finish refactor
+    bool init();
     bool parse_config_file();
     void handle_packet(int client_fd, char* packet); 
     void handle_client(int client);
