@@ -12,9 +12,7 @@
 // and it will be the client's job to deserialize and make it human readable.
 
 bool Server::cmd_remove_torrent(ResponseContext* response, unsigned int idx) {
-    if (DEBUG) {
-        printf("issued remove torrent command on idx %u\n", idx);
-    }
+    if (DEBUG) printf("issued remove torrent command on idx %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx >= handles.size()) {
         response->message = "ERROR: invalid index";
@@ -52,18 +50,14 @@ bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet) {
 // maybe factor out and pass a struct returned from the parser into this function
 // rather than doing parsing inline
 bool Server::cmd_add_torrent(ResponseContext* response, char* packet) {
-    if (DEBUG) {
-        printf("issued cmd add torrent\n");
-    }
+    if (DEBUG) printf("issued cmd add torrent\n");
     ParsedAddPacket parsed_packet;
     lt::add_torrent_params atp;
     if (!parse_add_packet(packet, &parsed_packet)) {
         response->message = "INVALID PACKET";
         return false;
     }
-    if (DEBUG) {
-        printf("torrent parsed, magnet link is: %s\n", parsed_packet.url.c_str());
-    }
+    if (DEBUG) printf("torrent parsed, magnet link is: %s\n", parsed_packet.url.c_str());
     try {
         atp = lt::parse_magnet_uri(parsed_packet.url);
     }
@@ -78,9 +72,7 @@ bool Server::cmd_add_torrent(ResponseContext* response, char* packet) {
 }
 
 bool Server::cmd_resume_all(ResponseContext* response) {
-    if (DEBUG) {
-        printf("issued resume all cmd\n");
-    }
+    if (DEBUG) printf("issued resume all cmd\n");
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     for (size_t i = 0; i < handles.size(); ++i) {
         handles[i].resume();
@@ -90,9 +82,7 @@ bool Server::cmd_resume_all(ResponseContext* response) {
 }
 
 bool Server::cmd_pause_idx(ResponseContext* response, uint16_t idx) {
-    if (DEBUG) {
-        printf("pause idx cmd, %u\n", idx);
-    }
+    if (DEBUG) printf("pause idx cmd, %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx < handles.size()) {
         handles[idx].pause();
@@ -102,9 +92,7 @@ bool Server::cmd_pause_idx(ResponseContext* response, uint16_t idx) {
 }
 
 bool Server::cmd_resume_idx(ResponseContext* response, unsigned int idx) {
-    if (DEBUG) {
-        printf("resume idx cmd, %u\n", idx);
-    }
+    if (DEBUG) printf("resume idx cmd, %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx < handles.size()) {
         handles[idx].resume();
@@ -121,9 +109,7 @@ bool Server::cmd_invalid(ResponseContext* response) {
 }
 
 bool Server::cmd_pause_all(ResponseContext* response) {
-    if (DEBUG) {
-        printf("pause all cmd\n");
-    }
+    if (DEBUG) printf("pause all cmd\n");
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (handles.empty()) {
         response->message = "ERROR: NO TORRENTS TO PAUSE!";
@@ -148,12 +134,14 @@ bool Server::cmd_query_torrent_status(ResponseContext* response, unsigned int id
 }
 
 bool Server::cmd_status(ResponseContext* response) {
-    printf("issued status command\n");
+    if (DEBUG) printf("issued status command\n");
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     response->message = "";
     std::size_t handle_cnt = handles.size();
     if (!handle_cnt) {
         response->message += "no torrents added";
+        // return true because this isn't a failure.
+        return true;
     }
     for (std::size_t i = 0; i < handle_cnt; ++i) {
         lt::torrent_status status = handles[i].status();
@@ -171,9 +159,7 @@ bool Server::cmd_status(ResponseContext* response) {
 // for current session
 //bool Server::cmd_query_stats(Server* ctx, ResponseContext* response) {
 bool Server::cmd_query_stats(ResponseContext* response) {
-    if (DEBUG) {
-        printf("issued query stats command\n");
-    }
+    if (DEBUG) printf("issued query stats command\n");
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     std::size_t handle_cnt = handles.size();
     std::size_t total_upload = 0;

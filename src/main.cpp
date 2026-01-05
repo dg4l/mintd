@@ -139,9 +139,7 @@ int main(int argc, char** argv) {
     Server ctx;
     struct pollfd poll_fd;
     poll_fd.events = POLLIN;
-    if (!ctx.parse_config_file()) {
-        return 1;
-    }
+    if (!ctx.parse_config_file()) return 1;
     // command line arguments should simply be overrides for the config file.
     while ((c = getopt(argc, argv, "d")) != -1) {
     //while ((c = getopt(argc, argv, "db:")) != -1) {
@@ -153,9 +151,7 @@ int main(int argc, char** argv) {
             //    break;
         }
     }
-    if (!ctx.init()) {
-        return 1;
-    }
+    if (!ctx.init()) return 1;
     std::vector<lt::torrent_handle> handles;
     poll_fd.fd = ctx.srv_fd;
     listen(ctx.srv_fd, 1);
@@ -163,9 +159,7 @@ int main(int argc, char** argv) {
     signal(SIGSEGV, dump_stack_trace);
     while (!ctx.done) {
         int poll_result = poll(&poll_fd, 1, 200);
-        if (poll_result < 0) {
-            fprintf(stderr, "poll error\n");
-        }
+        if (poll_result < 0) fprintf(stderr, "poll error\n");
         if (poll_fd.revents & POLLIN) {
             int client = accept(ctx.srv_fd, NULL, NULL);
             if (client != -1) {
@@ -174,9 +168,7 @@ int main(int argc, char** argv) {
             }
         }
         ctx.handle_alerts();
-        if (ctx.done) {
-            continue;
-        }
+        if (ctx.done) continue;
     }
     delete ctx.session;
     return 0;
