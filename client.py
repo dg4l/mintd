@@ -2,7 +2,7 @@
 import argparse
 import socket
 
-path = "/tmp/mintd.socket";
+sock_path = "/tmp/mintd.socket";
 mintd_magic = b'MT'
 
 class Commands:
@@ -20,7 +20,7 @@ class Commands:
 
 def send_packet(packet) -> bytes:
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-        s.connect(path)
+        s.connect(sock_path)
         s.send(packet)
         data = s.recv(1024)
         return data
