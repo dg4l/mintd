@@ -23,37 +23,34 @@ bool Server::cmd_remove_torrent(ResponseContext* response, unsigned int idx) {
     return true;
 }
 
-// this is real bad.
-// likely rewrite the entire function.
 #define URL_OFFSET 10
-bool parse_add_packet(char* packet, ParsedAddPacket* parsed_packet) {
+bool parse_add_packet(char* packet, size_t packet_len, ParsedAddPacket* parsed_packet) {
+    if (packet_len < URL_OFFSET || packet_len > MAX_PACKET_SIZE) return false;
     uint16_t url_len = (uint8_t)packet[9] | ((uint8_t)packet[8] << 8);
-    uint16_t save_path_len = 0;
-    if (!url_len || url_len > MAX_PACKET_SIZE - 10) return false;
-    //if (url_len > MAX_PACKET_SIZE - 12) return false;
-    if (url_len > MAX_PACKET_SIZE - 10) return false;
-    parsed_packet->url = std::string(packet + URL_OFFSET, packet + URL_OFFSET + url_len);
-    if (url_len == MAX_PACKET_SIZE - URL_OFFSET) {
+    if (!url_len || url_len > packet_len - URL_OFFSET) return false;
+    parsed_packet->url = std::string(packet + URL_OFFSET, url_len);
+    size_t save_path_len_offset = URL_OFFSET + url_len;
+    if (packet_len - save_path_len_offset < 2) {
         parsed_packet->save_path = ".";
+        return true;
     }
-    // 12 is just URL_OFFSET + 2, the + 2 is to skip the save_path_len.
-    else {
-        save_path_len = (uint8_t)packet[url_len + URL_OFFSET + 1] | (uint8_t)(packet[url_len + URL_OFFSET]) << 8;
-        if (!save_path_len) parsed_packet->save_path = ".";
-        else if (save_path_len > MAX_PACKET_SIZE - url_len - 12) return false;
-        else parsed_packet->save_path = std::string(packet + 12 + url_len, packet + 12 + url_len + save_path_len);
-    }
+    uint16_t save_path_len = (uint8_t)packet[save_path_len_offset + 1] | ((uint8_t)packet[save_path_len_offset] << 8);
+    size_t save_path_offset = save_path_len_offset + 2;
+    if (!save_path_len) parsed_packet->save_path = ".";
+    else if (save_path_len > packet_len - save_path_offset) return false;
+    else parsed_packet->save_path = std::string(packet + save_path_offset, save_path_len);
     return true;
 }
 
 // parse packet inline for now. if i feel like it,
 // maybe factor out and pass a struct returned from the parser into this function
 // rather than doing parsing inline
-bool Server::cmd_add_torrent(ResponseContext* response, char* packet) {
+// TODO: check if magnet or .torrent, maybe redo entire thing.
+bool Server::cmd_add_torrent(ResponseContext* response, char* packet, size_t packet_len) {
     if (DEBUG) printf("issued cmd add torrent\n");
     ParsedAddPacket parsed_packet;
     lt::add_torrent_params atp;
-    if (!parse_add_packet(packet, &parsed_packet)) {
+    if (!parse_add_packet(packet, packet_len, &parsed_packet)) {
         response->message = "INVALID PACKET";
         return false;
     }
@@ -66,7 +63,12 @@ bool Server::cmd_add_torrent(ResponseContext* response, char* packet) {
         return false;
     }
     atp.save_path = parsed_packet.save_path;
-    this->session->add_torrent(std::move(atp));
+    lt::error_code ec;
+    this->session->add_torrent(std::move(atp), ec);
+    if (ec) {
+        response->message = "ERROR: " + ec.message();
+        return false;
+    }
     response->message = "ADDED";
     return true;
 }
@@ -81,7 +83,7 @@ bool Server::cmd_resume_all(ResponseContext* response) {
     return true;
 }
 
-bool Server::cmd_pause_idx(ResponseContext* response, uint16_t idx) {
+bool Server::cmd_pause_idx(ResponseContext* response, unsigned int idx) {
     if (DEBUG) printf("pause idx cmd, %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx < handles.size()) {
@@ -179,14 +181,14 @@ bool Server::cmd_query_stats(ResponseContext* response) {
 }
 
 // TODO: handle errors in a better way.
-bool Server::handle_command(int client_fd, char* packet) {
+bool Server::handle_command(int client_fd, char* packet, size_t packet_len) {
     ResponseContext response;
     response.message = "default";
     bool success = false;
-    uint16_t command = packet[3] | (packet[2] << 8);
+    uint16_t command = (uint8_t)packet[3] | ((uint8_t)packet[2] << 8);
     switch(command) {
         case CMD_ADD:
-            success = this->cmd_add_torrent(&response, packet);
+            success = this->cmd_add_torrent(&response, packet, packet_len);
             break;
         case CMD_QUERY_STATUS:
             success = this->cmd_status(&response);
@@ -224,6 +226,6 @@ bool Server::handle_command(int client_fd, char* packet) {
             success = this->cmd_invalid(&response);
             break;
     }
-    send(client_fd, response.message.c_str(), strlen(response.message.c_str()), 0);
+    send(client_fd, response.message.c_str(), response.message.size(), MSG_NOSIGNAL);
     return success;
 }

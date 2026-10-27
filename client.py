@@ -1,8 +1,13 @@
 #!/bin/python3
 import argparse
+import os
 import socket
+import sys
 
-sock_path = "/tmp/mintd.socket";
+runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+if not runtime_dir:
+    sys.exit("XDG_RUNTIME_DIR is not set")
+sock_path = os.path.join(runtime_dir, "mintd.socket")
 mintd_magic = b'MT'
 
 class Commands:
@@ -24,6 +29,10 @@ def send_packet(packet) -> bytes:
         s.send(packet)
         data = s.recv(1024)
         return data
+
+def sanitize_response(response) -> str:
+    text = response.decode('utf-8', errors='replace')
+    return ''.join(ch if ch == '\n' or ch.isprintable() else '?' for ch in text)
 
 # lots of repeated logic but it doesn't matter for now
 def create_pause_all_packet() -> bytes:
@@ -57,7 +66,7 @@ def create_invalid_packet() -> bytes:
 def mintd_invalid(args):
     packet = create_invalid_packet()
     response = send_packet(packet)
-    print(response.decode('utf-8'))
+    print(sanitize_response(response))
 
 def mintd_status(args):
     if args.torrent is not None and args.torrent.isdigit():
@@ -65,7 +74,7 @@ def mintd_status(args):
     else:
         packet = create_status_packet()
     response = send_packet(packet)
-    print(response.decode('utf-8'))
+    print(sanitize_response(response))
 
 # temp hack
 def create_add_packet_no_path(magnet_url) -> bytes:
@@ -80,7 +89,7 @@ def mintd_add(args):
     else:
         packet = create_add_packet(args.magnet_url, args.file_path)
     response = send_packet(packet)
-    print(response.decode('utf-8'))
+    print(sanitize_response(response))
 
 def mintd_remove(args):
     packet = create_remove_packet(args.num)
@@ -89,7 +98,7 @@ def mintd_remove(args):
 def mintd_stats(args):
     packet = create_query_stats_packet()
     response = send_packet(packet)
-    print(response.decode('utf-8'))
+    print(sanitize_response(response))
 
 def mintd_pause(args):
     idx = args.num

@@ -28,34 +28,70 @@ using namespace std::literals;
 bool DEBUG = false;
 
 bool Server::init() {
-    this->socket_path = "/tmp/mintd.socket";
+    const char* runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (!runtime_dir || runtime_dir[0] != '/') {
+        fprintf(stderr, "XDG_RUNTIME_DIR is not set\n");
+        return false;
+    }
+    this->socket_path = std::string(runtime_dir) + "/mintd.socket";
     lt::settings_pack settings_pak;
     settings_pak.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
     settings_pak.set_str(lt::settings_pack::user_agent, "mintd/0.1");
+    settings_pak.set_bool(lt::settings_pack::anonymous_mode, this->anonymous_mode);
     if (this->strict_bind) {
         settings_pak.set_str(lt::settings_pack::outgoing_interfaces, this->outgoing_interface);
         settings_pak.set_str(lt::settings_pack::listen_interfaces, this->incoming_interface);
     }
     if (DEBUG) {
+        printf("anonymous mode: %s\n", this->anonymous_mode ? "on" : "off");
         printf("outgoing: %s\nlistening: %s\n", settings_pak.get_str(lt::settings_pack::outgoing_interfaces).c_str(),
                 settings_pak.get_str(lt::settings_pack::listen_interfaces).c_str());
     }
     this->session = new lt::session(settings_pak);
+    if (this->socket_path.size() >= sizeof(this->server_addr.sun_path)) {
+        fprintf(stderr, "socket path too long\n");
+        return false;
+    }
     this->srv_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (this->srv_fd < 0) {
+        perror("socket");
+        return false;
+    }
     memset(&this->server_addr, 0, sizeof(this->server_addr));
     this->server_addr.sun_family = AF_UNIX;
-    strcpy(this->server_addr.sun_path, this->socket_path);
-    unlink(this->socket_path);
-    bind(this->srv_fd, (struct sockaddr*)&this->server_addr, sizeof(this->server_addr));
+    strncpy(this->server_addr.sun_path, this->socket_path.c_str(), sizeof(this->server_addr.sun_path) - 1);
+    unlink(this->socket_path.c_str());
+    mode_t old_umask = umask(0177);
+    int bind_result = bind(this->srv_fd, (struct sockaddr*)&this->server_addr, sizeof(this->server_addr));
+    umask(old_umask);
+    if (bind_result < 0) {
+        perror("bind");
+        return false;
+    }
+    if (listen(this->srv_fd, 1) < 0) {
+        perror("listen");
+        return false;
+    }
     return true;
 }
 
+bool client_is_same_user(int client) {
+    struct ucred cred;
+    socklen_t cred_len = sizeof(cred);
+    if (getsockopt(client, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len) < 0) return false;
+    return cred.uid == getuid();
+}
+
 void Server::handle_client(int client) {
-    char packet[10000];
-    int bytes = read(client, packet, sizeof(packet));
+    char packet[MAX_PACKET_SIZE + 1];
+    struct timeval timeout = {1, 0};
+    if (!client_is_same_user(client)) return;
+    setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+    ssize_t bytes = read(client, packet, MAX_PACKET_SIZE);
+    if (bytes <= 0) return;
     packet[bytes] = 0;
-    this->handle_packet(client, packet);
-    close(client);
+    this->handle_packet(client, packet, bytes);
 }
 
 // don't return a bool, just modify the done flag.
@@ -71,28 +107,29 @@ void Server::handle_alerts() {
 }
 
 std::string get_config_path() {
-    std::string path = getenv("HOME");
+    const char* home = getenv("HOME");
+    if (!home) return "";
+    std::string path = home;
     path += "/.config/mintd/config.toml";
     return path;
 }
 
 const char* generate_default_config() {
-    const char* default_config = "[network]\nstrict = false\n#replace with your own network interfaces.\noutgoing_interface = \"eth0\"\nincoming_interface = \"eth0\"\n[developer]\ndebug = false\n";
+    const char* default_config = "[network]\nstrict = false\nanonymous = false\n#replace with your own network interfaces.\noutgoing_interface = \"eth0\"\nincoming_interface = \"eth0\"\n[developer]\ndebug = false\n";
     return default_config;
 }
 
 bool create_default_config_file(std::string config_path) {
     std::string config_path_copy = config_path;
     fprintf(stderr, "config file not found!\n");
-    std::string dir_path = dirname((char*)config_path.c_str());
-    std::filesystem::create_directories(dir_path);
+    std::filesystem::create_directories(std::filesystem::path(config_path).parent_path());
     const char* default_config_text = generate_default_config();
     FILE* config_file = fopen(config_path_copy.c_str(), "w");
     if (!config_file) {
         fprintf(stderr, "failed to open config file for writing\n");
         return false;
     }
-    fprintf(config_file, default_config_text);
+    fputs(default_config_text, config_file);
     printf("config file written to %s!\n", config_path_copy.c_str());
     fclose(config_file);
     return true;
@@ -111,6 +148,7 @@ bool Server::parse_config_file() {
     if (!ensure_config_exists(config_path)) return false;
     toml::table config = toml::parse_file(config_path);
     this->strict_bind = config["network"]["strict"].value_or(0);
+    this->anonymous_mode = config["network"]["anonymous"].value_or(false);
     DEBUG = config["developer"]["debug"].value_or(0);
     if (DEBUG) std::cout << "debug enabled in config." << std::endl;
     if (this->strict_bind) {
@@ -131,7 +169,8 @@ void dump_stack_trace(int sig) {
     size = backtrace(array, 10);
     fprintf(stderr, "signal %d:\n", sig);
     backtrace_symbols_fd(array, size, STDERR_FILENO);
-    *(int*)0 = 0;
+    signal(sig, SIG_DFL);
+    raise(sig);
 }
 
 int main(int argc, char** argv) {
@@ -141,11 +180,14 @@ int main(int argc, char** argv) {
     poll_fd.events = POLLIN;
     if (!ctx.parse_config_file()) return 1;
     // command line arguments should simply be overrides for the config file.
-    while ((c = getopt(argc, argv, "d")) != -1) {
+    while ((c = getopt(argc, argv, "da")) != -1) {
     //while ((c = getopt(argc, argv, "db:")) != -1) {
         switch(c) {
             case 'd':
                 DEBUG = true;
+                break;
+            case 'a':
+                ctx.anonymous_mode = true;
                 break;
             //case 'b':
             //    break;
@@ -154,9 +196,9 @@ int main(int argc, char** argv) {
     if (!ctx.init()) return 1;
     std::vector<lt::torrent_handle> handles;
     poll_fd.fd = ctx.srv_fd;
-    listen(ctx.srv_fd, 1);
     ctx.done = false;
     signal(SIGSEGV, dump_stack_trace);
+    signal(SIGPIPE, SIG_IGN);
     while (!ctx.done) {
         int poll_result = poll(&poll_fd, 1, 200);
         if (poll_result < 0) fprintf(stderr, "poll error\n");
