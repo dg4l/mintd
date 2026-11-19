@@ -31,6 +31,7 @@ typedef struct Server {
     lt::session* session;
     lt::settings_pack settings;
     int srv_fd;
+    int lock_fd;
     bool done;
     bool init();
     bool parse_config_file();

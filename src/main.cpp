@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <libgen.h>
@@ -40,6 +42,17 @@ bool Server::init() {
         return false;
     }
     this->socket_path = std::string(runtime_dir) + "/mintd.socket";
+    std::string lock_path = std::string(runtime_dir) + "/mintd.lock";
+    this->lock_fd = open(lock_path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (this->lock_fd < 0) {
+        perror("open lock file");
+        return false;
+    }
+    if (flock(this->lock_fd, LOCK_EX | LOCK_NB) < 0) {
+        if (errno == EWOULDBLOCK) fprintf(stderr, "mintd is already running\n");
+        else perror("flock");
+        return false;
+    }
     lt::settings_pack settings_pak;
     settings_pak.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
     settings_pak.set_str(lt::settings_pack::user_agent, "mintd/0.1");
@@ -127,14 +140,19 @@ std::string get_config_path() {
 }
 
 const char* generate_default_config() {
-    const char* default_config = "[network]\nstrict = false\nanonymous = false\n#replace with your own network interfaces.\noutgoing_interface = \"eth0\"\nincoming_interface = \"eth0\"\n[developer]\ndebug = false\n";
+    const char* default_config = "[network]\nstrict = false\nanonymous = false\n#replace with your own network interfaces.\noutgoing_interface = \"eth0\"\nincoming_interface = \"eth0:6881\"\n[developer]\ndebug = false\n";
     return default_config;
 }
 
 bool create_default_config_file(std::string config_path) {
     std::string config_path_copy = config_path;
     fprintf(stderr, "config file not found!\n");
-    std::filesystem::create_directories(std::filesystem::path(config_path).parent_path());
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(config_path).parent_path(), ec);
+    if (ec) {
+        fprintf(stderr, "failed to create config directory: %s\n", ec.message().c_str());
+        return false;
+    }
     const char* default_config_text = generate_default_config();
     FILE* config_file = fopen(config_path_copy.c_str(), "w");
     if (!config_file) {
@@ -149,7 +167,13 @@ bool create_default_config_file(std::string config_path) {
 
 bool ensure_config_exists(std::string config_path) {
     if (config_path.empty()) return false;
-    if (!std::filesystem::exists(config_path)) return create_default_config_file(config_path);
+    std::error_code ec;
+    bool exists = std::filesystem::exists(config_path, ec);
+    if (ec) {
+        fprintf(stderr, "failed to check config file: %s\n", ec.message().c_str());
+        return false;
+    }
+    if (!exists) return create_default_config_file(config_path);
     return true;
 }
 
@@ -158,7 +182,13 @@ bool ensure_config_exists(std::string config_path) {
 bool Server::parse_config_file() {
     std::string config_path = get_config_path();
     if (!ensure_config_exists(config_path)) return false;
-    toml::table config = toml::parse_file(config_path);
+    toml::table config;
+    try {
+        config = toml::parse_file(config_path);
+    } catch (const toml::parse_error& err) {
+        std::cerr << "failed to parse " << config_path << ": " << err << std::endl;
+        return false;
+    }
     this->strict_bind = config["network"]["strict"].value_or(0);
     this->anonymous_mode = config["network"]["anonymous"].value_or(false);
     DEBUG = config["developer"]["debug"].value_or(0);
