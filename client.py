@@ -7,6 +7,9 @@ import sys
 runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
 if not runtime_dir:
     sys.exit("XDG_RUNTIME_DIR is not set")
+runtime_st = os.lstat(runtime_dir)
+if not os.path.isdir(runtime_dir) or os.path.islink(runtime_dir) or runtime_st.st_uid != os.getuid() or runtime_st.st_mode & 0o077:
+    sys.exit("XDG_RUNTIME_DIR must be a directory owned by you with mode 0700")
 sock_path = os.path.join(runtime_dir, "mintd.socket")
 mintd_magic = b'MT'
 

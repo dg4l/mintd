@@ -7,6 +7,7 @@
 #include <execinfo.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <libgen.h>
@@ -33,6 +34,11 @@ bool Server::init() {
         fprintf(stderr, "XDG_RUNTIME_DIR is not set\n");
         return false;
     }
+    struct stat dir_stat;
+    if (lstat(runtime_dir, &dir_stat) < 0 || !S_ISDIR(dir_stat.st_mode) || dir_stat.st_uid != getuid() || (dir_stat.st_mode & 077)) {
+        fprintf(stderr, "XDG_RUNTIME_DIR must be a directory owned by you with mode 0700\n");
+        return false;
+    }
     this->socket_path = std::string(runtime_dir) + "/mintd.socket";
     lt::settings_pack settings_pak;
     settings_pak.set_int(lt::settings_pack::alert_mask, lt::alert_category::status | lt::alert_category::error);
@@ -41,6 +47,12 @@ bool Server::init() {
     if (this->strict_bind) {
         settings_pak.set_str(lt::settings_pack::outgoing_interfaces, this->outgoing_interface);
         settings_pak.set_str(lt::settings_pack::listen_interfaces, this->incoming_interface);
+    }
+    if (this->strict_bind || this->anonymous_mode) {
+        settings_pak.set_bool(lt::settings_pack::enable_upnp, false);
+        settings_pak.set_bool(lt::settings_pack::enable_natpmp, false);
+        settings_pak.set_bool(lt::settings_pack::enable_lsd, false);
+        settings_pak.set_str(lt::settings_pack::dht_bootstrap_nodes, "");
     }
     if (DEBUG) {
         printf("anonymous mode: %s\n", this->anonymous_mode ? "on" : "off");
@@ -99,8 +111,8 @@ void Server::handle_alerts() {
     std::vector<lt::alert*> alerts;
     this->session->pop_alerts(&alerts);
     for (lt::alert const* alert : alerts) {
-        if (lt::alert_cast<lt::torrent_error_alert>(alert)) {
-            this->done = true;
+        if (auto const* err = lt::alert_cast<lt::torrent_error_alert>(alert)) {
+            fprintf(stderr, "%s\n", err->message().c_str());
             continue;
         }
     }
