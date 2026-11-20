@@ -77,6 +77,7 @@ bool Server::cmd_resume_all(ResponseContext* response) {
     if (DEBUG) printf("issued resume all cmd\n");
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     for (size_t i = 0; i < handles.size(); ++i) {
+        handles[i].set_flags(lt::torrent_flags::auto_managed);
         handles[i].resume();
     }
     response->message = "resumed";
@@ -87,6 +88,7 @@ bool Server::cmd_pause_idx(ResponseContext* response, unsigned int idx) {
     if (DEBUG) printf("pause idx cmd, %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx < handles.size()) {
+        handles[idx].unset_flags(lt::torrent_flags::auto_managed);
         handles[idx].pause();
     }
     response->message = "PAUSED";
@@ -97,6 +99,7 @@ bool Server::cmd_resume_idx(ResponseContext* response, unsigned int idx) {
     if (DEBUG) printf("resume idx cmd, %u\n", idx);
     std::vector<lt::torrent_handle> handles = this->session->get_torrents();
     if (idx < handles.size()) {
+        handles[idx].set_flags(lt::torrent_flags::auto_managed);
         handles[idx].resume();
         response->message = "RESUMED";
         return true;
@@ -118,6 +121,7 @@ bool Server::cmd_pause_all(ResponseContext* response) {
         return false;
     }
     for (std::size_t i = 0; i < handles.size(); ++i) {
+        handles[i].unset_flags(lt::torrent_flags::auto_managed);
         handles[i].pause();
     }
     response->message = "PAUSED ALL";
